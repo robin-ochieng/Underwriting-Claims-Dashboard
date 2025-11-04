@@ -29,8 +29,9 @@ claims_data <- read_excel("./data/Selected_Claims_Data.xlsx", col_types = c("tex
 # Source custom modules
 source("modules/customValueBox.R")
 
-# Source CLAIMS Dashboard module scripts
-source("modules/ClaimsDashboardModule.R", local = TRUE)
+# Source Dashboard module scripts
+source("modules/GiisModule.R", local = TRUE)
+source("modules/AimsModule.R", local = TRUE)
 
 
 # Define a custom theme using bslib
@@ -47,20 +48,32 @@ my_theme <- bs_theme(
 )
 
 ui <- dashboardPage(
-  title = "Claims Dashboard",
+  title = "GIIS & AIMS Dashboard",
   dark = NULL,
   help = NULL,
   fullscreen = FALSE,
   scrollToTop = TRUE,
   freshTheme = my_theme,
   dashboardHeader(
-    title = HTML("<strong>Claims Dashboard</strong>"),
+    title = HTML("<strong>GIIS & AIMS Dashboard</strong>"),
     controlbarIcon = NULL,
     status = "white",
     sidebarIcon = NULL,
     fixed = TRUE
   ),
-  sidebar = dashboardSidebar(disable = TRUE),  # Properly disable sidebar
+  sidebar = dashboardSidebar(
+    skin = "light",
+    tags$div(
+      class = "menu-container",
+    sidebarMenu(
+      menuItem("GIIS", tabName = "dashboard_giis", icon = icon("chart-line")),
+      menuItem("AIMS", tabName = "dashboard_aims", icon = icon("bullseye"))
+    )),
+    div(class = "sidebar-footer",
+        img(src = "images/jubilee.png", class = "jubilee-logo"),
+        img(src = "images/kenbright.png")
+    )
+  ),
   dashboardBody(
     tags$head(
       tags$script(HTML("
@@ -71,12 +84,14 @@ ui <- dashboardPage(
       includeCSS("www/css/custom_styles.css"),
       tags$link(rel = "shortcut icon", href = "favicon/kenbright.ico", type = "image/x-icon")
     ),
-    # Direct content without tabs since we only have claims
-    claimsDashboardUI("claims_dashboard")
+    tabItems(
+      tabItem(tabName = "dashboard_giis", giisDashboardUI("giis_dashboard")),
+      tabItem(tabName = "dashboard_aims", aimsDashboardUI("aims_dashboard"))
+  )
   ),
   footer = bs4DashFooter(
     div(style = "background-color: #ffffff; color: #000000; text-align: center; padding: 6px; font-size: 10px", 
-        "© 2025 Claims Dashboard. All rights reserved.")
+        "© 2025 GIIS & AIMS Dashboard. All rights reserved.")
   )
 )
 
@@ -91,8 +106,11 @@ server <- function(input, output, session) {
     data
   })
 
-  #Claims Dashboard Server Modules
-  claimsDashboardServer("claims_dashboard", data = filtered_claims_data)
+  # GIIS Dashboard Server Module
+  giisDashboardServer("giis_dashboard", data = filtered_claims_data)
+  
+  # AIMS Dashboard Server Module
+  aimsDashboardServer("aims_dashboard", data = filtered_claims_data)
 
 }
 
