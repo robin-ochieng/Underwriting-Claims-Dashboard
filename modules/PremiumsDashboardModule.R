@@ -41,6 +41,54 @@ premiumsDashboardUI <- function(id) {
         )
       )
     ),
+    fluidRow(
+      column(
+        width = 6,
+        box(
+          title = "Gross Premium by Month",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("premium_by_month")), type = 6)
+        )
+      ),
+      column(
+        width = 6,
+        box(
+          title = "Premium Count by Month",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("premiumCount_by_month")), type = 6)
+        )
+      )
+    ),
+    fluidRow(
+      column(
+        width = 6,
+        box(
+          title = "Gross Premium by Quarter",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("premium_by_quarter")), type = 6)
+        )
+      ),
+      column(
+        width = 6,
+        box(
+          title = "Premium Count by Quarter",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("premiumcount_by_quarter")), type = 6)
+        )
+      )
+    ),
     fluidRow( 
         bs4Card(
           title = "Premium by Class",
@@ -186,6 +234,176 @@ premiumsDashboardServer <- function(id, data) {
       customValueBox("Reinsurance Ceded", comma(ceded), "#F39C12")
     })
     
+
+
+    output$premium_by_month <- renderPlotly({
+      df <- filtered_data() %>%
+        filter(!is.na(POLICY_FROM_DATE)) %>%
+        mutate(Month = format(as.Date(POLICY_FROM_DATE), "%B")) %>%
+        mutate(Month = factor(Month, levels = month.name)) %>%
+        group_by(Month) %>%
+        summarise(TotalPremiums = sum(BASE_PREMIUM, na.rm = TRUE)) %>%
+        mutate(
+          Label = case_when(
+            TotalPremiums >= 1e6 ~ paste0(formatC(TotalPremiums / 1e6, format = "f", digits = 0, big.mark = ","), " M"),
+            TotalPremiums >= 1e3 ~ paste0(formatC(TotalPremiums / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(TotalPremiums, format = "f", digits = 0, big.mark = ",")
+          )
+        )
+      plot_ly(df, 
+              x = ~Month, 
+              y = ~TotalPremiums, 
+              type = 'scatter', 
+              mode = 'lines+markers+text',
+              text = ~Label,
+              textposition = 'top center',              
+              textfont = list(size = 8, color = 'black'),
+              hoverinfo = 'text',
+              line = list(color = '#00BFA5'),
+              marker = list(size = 6)) %>%
+        layout(
+          title = list(
+            text = "Monthly Premium Trend",
+            x = 0.01,  # left-align title
+            xanchor = "left",
+            font = list(size = 14)
+          ),
+          margin = list(b = 60), 
+          xaxis = list(title = "Month", tickangle = -45, tickfont = list(size = 10)),
+          yaxis = list(title = "Total Premium (KES)", tickfont = list(size = 10)),
+          font = list(family = "Mulish"),
+          plot_bgcolor = "white",
+          paper_bgcolor = "white"
+        )
+    })
+
+    # Policy Count by SUB_CLASSNAMEN
+    output$premiumCount_by_month <- renderPlotly({
+      df <- filtered_data() %>%
+        filter(!is.na(POLICY_FROM_DATE)) %>%
+        mutate(Month = format(as.Date(POLICY_FROM_DATE), "%B")) %>%
+        mutate(Month = factor(Month, levels = month.name)) %>%
+        group_by(Month) %>%
+        summarise(PremiumCount = n()) %>%
+        mutate(
+          Label = case_when(
+            PremiumCount >= 1e3 ~ paste0(formatC(PremiumCount / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(PremiumCount, format = "d", big.mark = ",")
+          )
+        )
+
+      plot_ly(df, 
+              x = ~Month, 
+              y = ~PremiumCount, 
+              type = 'scatter', 
+              mode = 'lines+markers+text',
+              text = ~Label,
+              textposition = 'top center',
+              textfont = list(size = 8, color = 'black'),
+              hoverinfo = 'text',
+              line = list(color = '#EA80FC'),
+              marker = list(size = 6)) %>%
+        layout(
+          title = list(
+            text = "Monthly Premium Count Trend",
+            x = 0.01,  # left-align title
+            xanchor = "left",
+            font = list(size = 14)
+          ),
+          margin = list(b = 30, t = 20), 
+          xaxis = list(title = "Month", tickangle = -45, tickfont = list(size = 10)),
+          yaxis = list(title = "Count", tickfont = list(size = 10)),
+          font = list(family = "Mulish"),
+          plot_bgcolor = "white",
+          paper_bgcolor = "white"
+        )
+    })
+
+    output$premium_by_quarter <- renderPlotly({
+      df <- filtered_data() %>%
+        filter(!is.na(POLICY_FROM_DATE)) %>%
+        mutate(Quarter = paste0("Q", quarter(as.Date(POLICY_FROM_DATE)))) %>%
+        mutate(Quarter = factor(Quarter, levels = c("Q1", "Q2", "Q3", "Q4"))) %>%
+        group_by(Quarter) %>%
+        summarise(TotalPremiums = sum(BASE_PREMIUM, na.rm = TRUE)) %>%
+        mutate(
+          Label = case_when(
+            TotalPremiums >= 1e6 ~ paste0(formatC(TotalPremiums / 1e6, format = "f", digits = 0, big.mark = ","), " M"),
+            TotalPremiums >= 1e3 ~ paste0(formatC(TotalPremiums / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(TotalPremiums, format = "f", digits = 0, big.mark = ",")
+          )
+        )
+
+      plot_ly(df, 
+              x = ~Quarter, 
+              y = ~TotalPremiums, 
+              type = 'scatter', 
+              mode = 'lines+markers+text',
+              text = ~Label,
+              textposition = 'top center',
+              textfont = list(size = 8, color = 'black'),
+              hoverinfo = 'text',
+              line = list(color = '#00BFA5'),
+              marker = list(size = 6)) %>%
+        layout(
+          title = list(
+            text = "Quarterly Gross Premium Trend",
+            x = 0.01,
+            xanchor = "left",
+            font = list(size = 14)
+          ),
+          margin = list(b = 50),
+          xaxis = list(title = "Quarter", tickfont = list(size = 10)),
+          yaxis = list(title = "Total Premium (KES)", tickfont = list(size = 10)),
+          font = list(family = "Mulish"),
+          plot_bgcolor = "white",
+          paper_bgcolor = "white"
+        )
+    })
+
+    output$premiumcount_by_quarter <- renderPlotly({
+      df <- filtered_data() %>%
+        filter(!is.na(POLICY_FROM_DATE)) %>%
+        mutate(Quarter = paste0("Q", quarter(as.Date(POLICY_FROM_DATE)))) %>%
+        mutate(Quarter = factor(Quarter, levels = c("Q1", "Q2", "Q3", "Q4"))) %>%
+        group_by(Quarter) %>%
+        summarise(PremiumCount = n()) %>%
+        mutate(
+          Label = case_when(
+            PremiumCount >= 1e3 ~ paste0(formatC(PremiumCount / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(PremiumCount, format = "d", big.mark = ",")
+          )
+        )
+
+      plot_ly(df, 
+              x = ~Quarter, 
+              y = ~PremiumCount, 
+              type = 'scatter', 
+              mode = 'lines+markers+text',
+              text = ~Label,
+              textposition = 'top center',
+              textfont = list(size = 8, color = 'black'),
+              hoverinfo = 'text',
+              line = list(color = '#EA80FC'),
+              marker = list(size = 6)) %>%
+        layout(
+          title = list(
+            text = "Quarterly Premium Count Trend",
+            x = 0.01,
+            xanchor = "left",
+            font = list(size = 14)
+          ),
+          margin = list(b = 50),
+          xaxis = list(title = "Quarter", tickfont = list(size = 10)),
+          yaxis = list(title = "Premium Count", tickfont = list(size = 10)),
+          font = list(family = "Mulish"),
+          plot_bgcolor = "white",
+          paper_bgcolor = "white"
+        )
+    })
+
+
+
     # Total Gross Premium by CLASS_DESCRIPTION
     output$premium_by_class <- renderPlotly({
       df <- filtered_data() %>%

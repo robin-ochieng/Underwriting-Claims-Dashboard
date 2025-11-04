@@ -18,14 +18,7 @@ library(shinyjs)
 library(extrafont)
 suppressMessages(loadfonts())
 
-# Load Premiums Data 
-premium_data <- read_excel("./data/Selected_Premium_Data.xlsx", col_types = c("text", "text", "text", "date", "date", "text", "numeric", "numeric", "numeric", "numeric",  "numeric", "numeric", "numeric",  "numeric", "text", "text", "text", "text", "text", "text", "text")) %>%
-  mutate(
-    Year = format(POLICY_FROM_DATE, "%Y"),
-    Month = format(POLICY_FROM_DATE, "%B"),
-    Quarter = paste0("Q", lubridate::quarter(POLICY_FROM_DATE))
-  )
-
+# Load Claims Data 
 claims_data <- read_excel("./data/Selected_Claims_Data.xlsx", col_types = c("text", "text", "date", "text", "text", "text", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "date")) %>%
   mutate(
     Year = format(LOSS_DATE, "%Y"),
@@ -38,9 +31,6 @@ source("modules/customValueBox.R")
 
 # Source CLAIMS Dashboard module scripts
 source("modules/ClaimsDashboardModule.R", local = TRUE)
-
-# Source premiums Dashboard module scripts
-source("modules/PremiumsDashboardModule.R", local = TRUE)
 
 
 # Define a custom theme using bslib
@@ -57,36 +47,20 @@ my_theme <- bs_theme(
 )
 
 ui <- dashboardPage(
-  title = "Underwriting & Claims Dashboard",
+  title = "Claims Dashboard",
   dark = NULL,
   help = NULL,
   fullscreen = FALSE,
   scrollToTop = TRUE,
   freshTheme = my_theme,
   dashboardHeader(
-    title = dashboardBrand(
-      title = HTML("<div class='header-left'><strong style='font-weight: bold;'>Underwriting & Claims Dashboard</strong></div>"),
-      color = "white",
-      href = "https://vehicle.co.ke/"
-    ),
+    title = HTML("<strong>Claims Dashboard</strong>"),
     controlbarIcon = NULL,
     status = "white",
     sidebarIcon = NULL,
     fixed = TRUE
   ),
-  sidebar = dashboardSidebar(
-    skin = "light",
-    tags$div(
-      class = "menu-container",
-    sidebarMenu(
-      menuItem("Premiums", tabName = "dashboard_premiums", icon = icon("sack-dollar")),
-      menuItem("Claims", tabName = "dashboard_claims", icon = icon("file-shield"))
-    )),
-    div(class = "sidebar-footer",
-        img(src = "images/jubilee.png", class = "jubilee-logo"),
-        img(src = "images/kenbright.png")
-    )
-  ),
+  sidebar = dashboardSidebar(disable = TRUE),  # Properly disable sidebar
   dashboardBody(
     tags$head(
       tags$script(HTML("
@@ -97,10 +71,8 @@ ui <- dashboardPage(
       includeCSS("www/css/custom_styles.css"),
       tags$link(rel = "shortcut icon", href = "favicon/kenbright.ico", type = "image/x-icon")
     ),
-    tabItems(
-      tabItem(tabName = "dashboard_premiums", premiumsDashboardUI("premiums_dashboard")),
-      tabItem(tabName = "dashboard_claims", claimsDashboardUI("claims_dashboard"))
-  )
+    # Direct content without tabs since we only have claims
+    claimsDashboardUI("claims_dashboard")
   ),
   footer = bs4DashFooter(
     div(style = "background-color: #ffffff; color: #000000; text-align: center; padding: 6px; font-size: 10px", 
@@ -111,19 +83,7 @@ ui <- dashboardPage(
 # Define server logic
 server <- function(input, output, session) {
   
-  # 1. Premiums Data -----------------------------------------------------------------------------------
-  # Filtered Premiums Data
-  filtered_premium_data <- reactive({
-    req(premium_data)
-    data <- premium_data 
-    data
-  })
-
-  #Premium Dashboard Server Modules
-  premiumsDashboardServer("premiums_dashboard", data = filtered_premium_data)
-
-
-  # 2. Claims Data -----------------------------------------------------------------------------------
+  # Claims Data -----------------------------------------------------------------------------------
   # Filtered Claims Data
   filtered_claims_data <- reactive({
     req(claims_data)
