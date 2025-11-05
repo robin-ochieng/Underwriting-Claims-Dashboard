@@ -48,14 +48,14 @@ my_theme <- bs_theme(
 )
 
 ui <- dashboardPage(
-  title = "GIIS & AIMS Dashboard",
+  title = "Claims Dashboard",
   dark = NULL,
   help = NULL,
   fullscreen = FALSE,
   scrollToTop = TRUE,
   freshTheme = my_theme,
   dashboardHeader(
-    title = HTML("<strong style='color: #1A73E8;'>GIIS & AIMS Dashboard</strong>"),
+    title = HTML("<strong style='color: #1A73E8;'>Claims Dashboard</strong>"),
     controlbarIcon = NULL,
     status = "white",
     sidebarIcon = NULL,
