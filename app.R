@@ -59,7 +59,11 @@ ui <- dashboardPage(
     controlbarIcon = NULL,
     status = "white",
     sidebarIcon = NULL,
-    fixed = TRUE
+    fixed = TRUE,
+    rightUi = tags$li(
+      class = "nav-item",
+      tags$img(src = "images/jubilee.png", height = "40px", style = "margin-right: 15px; margin-top: 5px;")
+    )
   ),
   sidebar = dashboardSidebar(
     skin = "light",
