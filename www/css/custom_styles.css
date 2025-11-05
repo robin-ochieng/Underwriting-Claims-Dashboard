@@ -73,10 +73,33 @@ body, .wrapper {
 
 .control-button {
   margin-right: 10px; 
-  border: 1px solid #0d6efd;
-  font-size: 10px;
   margin-bottom: 20px;
-  color: #0d6efd;
+  background: linear-gradient(135deg, #1A73E8 0%, #1557b0 100%) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 8px 20px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3) !important;
+  transition: all 0.3s ease !important;
+  text-transform: none !important;
+}
+
+.control-button:hover {
+  background: linear-gradient(135deg, #1557b0 0%, #0d4a8f 100%) !important;
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4) !important;
+  transform: translateY(-1px) !important;
+  color: #ffffff !important;
+}
+
+.control-button:active {
+  transform: translateY(0px) !important;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.3) !important;
+}
+
+.control-button i {
+  margin-right: 6px;
 }
 
 /* Target the menu item text in the sidebar, I need the background of the selector to be a gray color */
