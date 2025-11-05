@@ -358,18 +358,6 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
   z-index: 1050;
 }
 
-/* Add subtle top border accent */
-.menu-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 10%;
-  right: 10%;
-  height: 3px;
-  background: linear-gradient(90deg, transparent, #1A73E8, transparent);
-  border-radius: 2px;
-}
-
 /* Filters Section ---------------------------------------------------------------------------------- */
 
 /* Container for the full filter block */
