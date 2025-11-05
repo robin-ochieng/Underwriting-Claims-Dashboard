@@ -128,14 +128,44 @@ body, .wrapper {
   margin-bottom: 20px !important;
 }
 
-/* Change the background color of the main header */
+/* Change the background color of the main header with gradient and pattern */
 .main-header {
-  background-color: #ffffff !important;
+  background: linear-gradient(90deg, #ffffff 0%, #f8f9fa 50%, #e9ecef 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border-bottom: 1px solid rgba(26, 115, 232, 0.1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add subtle pattern overlay to navbar */
+.main-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(26, 115, 232, 0.02) 10px,
+      rgba(26, 115, 232, 0.02) 20px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ensure navbar content appears above the pattern */
+.main-header > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Optional: change the text color if needed */
 .main-header .logo, .main-header .navbar .nav > li > a {
-  color: #ffffff !important;
+  color: #2c3e50 !important;
 }
 
 /* Setting the font-family for the entire body and relevant components */
