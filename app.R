@@ -61,7 +61,7 @@ ui <- dashboardPage(
     sidebarIcon = NULL,
     fixed = TRUE,
     rightUi = tags$li(
-      class = "nav-item",
+      class = "dropdown",
       tags$img(src = "images/jubilee.png", height = "40px", style = "margin-right: 15px; margin-top: 5px;")
     )
   ),
