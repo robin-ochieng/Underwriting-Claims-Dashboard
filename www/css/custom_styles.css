@@ -1,4 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Mulish:wght@400;700&display=swap');
+
+/* Dashboard Body Background with SVG Pattern */
+.content-wrapper {
+  background-image: url('../svg/background-pattern.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Alternative: If you want a pure CSS gradient background instead of SVG */
+body, .wrapper {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
 /* Splash Screen Style */
 #splashScreen {
   position: fixed;
@@ -144,15 +160,50 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
 /* Custom styles for bs4Cards in controlbar to ensure max-width */
 .bs4-card-custom {
   max-width: 100%;
-} 
+}
 
-/* Set the background color of the sidebar */
+/* Enhanced card styling for better visibility on gradient background */
+.card, .box {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  border-radius: 10px !important;
+}
+
+/* Set the background color of the sidebar with gradient */
 .main-sidebar {
-  background-color: #f4f2ee !important;  /* Apply the desired color */
-  background-color: #fff !important;  /* Apply the desired color */
-  box-shadow: none !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 50%, #e9ecef 100%) !important;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08) !important;
+  border-right: 1px solid rgba(26, 115, 232, 0.1) !important;
+  position: relative;
+  overflow: hidden;
+}
 
+/* Add subtle pattern overlay to sidebar */
+.main-sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(26, 115, 232, 0.02) 10px,
+      rgba(26, 115, 232, 0.02) 20px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
 
+/* Ensure sidebar content appears above the pattern */
+.main-sidebar > * {
+  position: relative;
+  z-index: 1;
 }
 
 .sidebar-footer {
@@ -208,12 +259,13 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
 
 /* Container for the full filter block */
 .filters-section {
-  background-color: #f9f9fb;         /* Light neutral background */
-  border: 1px solid #e1e4e8;         /* Subtle border */
-  border-radius: 8px;                /* Rounded corners */
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(26, 115, 232, 0.15);
+  border-radius: 10px;
   padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .filters-header {
@@ -282,10 +334,12 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
 .custom-value-box {
   padding: 20px;
   border: 2px solid;
-  border-radius: 5px;
-  background-color: #f9f9f9;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   text-align: left;
   margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* Titles and values */
