@@ -55,7 +55,7 @@ ui <- dashboardPage(
   scrollToTop = TRUE,
   freshTheme = my_theme,
   dashboardHeader(
-    title = HTML("<strong>GIIS & AIMS Dashboard</strong>"),
+    title = HTML("<strong style='color: #1A73E8;'>GIIS & AIMS Dashboard</strong>"),
     controlbarIcon = NULL,
     status = "white",
     sidebarIcon = NULL,

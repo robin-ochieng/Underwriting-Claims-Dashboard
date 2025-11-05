@@ -158,19 +158,28 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
 .sidebar-footer {
   position: absolute;
   bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   display: flex; 
   flex-direction: column;
   gap: 10px;    
   padding: 10px;
   align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .jubilee-logo {
   height: 40px;
+  width: auto;
 }
 
 .sidebar-footer img {
   height: 40px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 /* Attempt to universally select and style the toggle button and any child elements */
@@ -185,7 +194,7 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
 .menu-container {
   display: block; /* Align items to the start of the container */
   position: fixed; /* Ensure the container is positioned correctly */    
-  top: 250px;  /* Aligns to the top of the viewport */
+  top: 400px;  /* Aligns to the top of the viewport */
   left: 0; 
   width: 250px; /* Match the width of the sidebar-footer */
   padding: 10px 5px; /* Add padding to give some space around the title */
