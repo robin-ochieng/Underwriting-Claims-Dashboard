@@ -364,11 +364,29 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
 .filters-section {
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(26, 115, 232, 0.15);
+  border: 2px solid rgba(26, 115, 232, 0.15);
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Animated border when filters are active */
+.filters-section.filters-active {
+  border-color: #1A73E8;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08);
+  animation: filterPulse 2s ease-in-out infinite;
+}
+
+@keyframes filterPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2), 0 2px 12px rgba(0, 0, 0, 0.12);
+  }
 }
 
 .filters-header {
@@ -383,7 +401,7 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #2c3e50;                    /* Dark neutral for titles */
+  color: #2c3e50;
 }
 
 /* Flex container for filter items */
@@ -391,32 +409,59 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;                  
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-start;
 }
 
 /* Individual filter item */
 .filter-item {
   flex: 1 1 160px;  
-  min-width: 160px;         
+  min-width: 160px;
 }
 
-/* Reset button */
+/* Filter labels with icons */
+.filter-item label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.filter-item label i {
+  margin-right: 6px;
+  color: #1A73E8;
+}
+
+/* Enhanced Reset Filters button */
 .btn-reset-filters {
-  background-color: #f0f0f0;
-  color: #333;
-  border: 1px solid #ccc;
-  padding: 6px 12px;
-  border-radius: 10px;
-  border: 1px solid #555;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3) !important;
+  text-transform: none !important;
+}
+
+.btn-reset-filters i {
+  margin-right: 6px;
 }
 
 .btn-reset-filters:hover {
-  background-color: #e2e6ea;
-  border-color: #adb5bd;
+  background: linear-gradient(135deg, #ee5a6f 0%, #d63447 100%) !important;
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4) !important;
+  transform: translateY(-1px) !important;
+  color: #ffffff !important;
+}
+
+.btn-reset-filters:active {
+  transform: translateY(0px) !important;
+  box-shadow: 0 2px 6px rgba(255, 107, 107, 0.3) !important;
 }
 
 /* ------------------------------------------------------------------------------------------------------------------------*/

@@ -84,6 +84,31 @@ ui <- dashboardPage(
         Shiny.addCustomMessageHandler('printPage', function(message) {
           window.print();
         });
+        
+        // Add active class to filter section when filters change
+        $(document).on('change', '.filters-section select', function() {
+          var filterSection = $(this).closest('.filters-section');
+          var hasActiveFilters = false;
+          
+          filterSection.find('select').each(function() {
+            var val = $(this).val();
+            if (val && val !== 'Select Year' && val !== 'Select Quarter' && val !== 'Select Month') {
+              hasActiveFilters = true;
+              return false; // break the loop
+            }
+          });
+          
+          if (hasActiveFilters) {
+            filterSection.addClass('filters-active');
+          } else {
+            filterSection.removeClass('filters-active');
+          }
+        });
+        
+        // Remove active class when reset button is clicked
+        $(document).on('click', '.btn-reset-filters', function() {
+          $(this).closest('.filters-section').removeClass('filters-active');
+        });
       ")),
       includeCSS("www/css/custom_styles.css"),
       tags$link(rel = "shortcut icon", href = "favicon/kenbright.ico", type = "image/x-icon")

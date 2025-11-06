@@ -29,11 +29,23 @@ aimsDashboardUI <- function(id) {
     fluidRow(
       column(12,
         div(class = "filters-section no-print",
-            div(class = "filters-header", h5("Filter by Policy Inception Period", class = "filters-title"), actionButton(ns("reset_filters"), "Reset Filters", class = "btn-reset-filters")),
+            div(class = "filters-header", 
+                h5("Filter by Policy Inception Period", class = "filters-title"), 
+                actionButton(ns("reset_filters"), HTML("<i class='fa fa-undo'></i> Reset Filters"), class = "btn-reset-filters")
+            ),
             div(class = "premium-filters-container",
-                div(class = "filter-item", selectInput(ns("claims_year"), "Year", choices = NULL, selected = "Select Year")),
-                div(class = "filter-item", selectInput(ns("claims_quarter"), "Quarter", choices = NULL, selected = "Select Quarter")),
-                div(class = "filter-item", selectInput(ns("claims_month"), "Month", choices = NULL, selected = "Select Month"))
+                div(class = "filter-item", 
+                    tags$label(HTML("<i class='fa fa-calendar'></i> Year"), `for` = ns("claims_year")),
+                    selectInput(ns("claims_year"), NULL, choices = NULL, selected = "Select Year")
+                ),
+                div(class = "filter-item", 
+                    tags$label(HTML("<i class='fa fa-chart-bar'></i> Quarter"), `for` = ns("claims_quarter")),
+                    selectInput(ns("claims_quarter"), NULL, choices = NULL, selected = "Select Quarter")
+                ),
+                div(class = "filter-item", 
+                    tags$label(HTML("<i class='fa fa-calendar-alt'></i> Month"), `for` = ns("claims_month")),
+                    selectInput(ns("claims_month"), NULL, choices = NULL, selected = "Select Month")
+                )
             )
         )
       )
