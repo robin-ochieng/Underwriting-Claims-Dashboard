@@ -1,0 +1,25 @@
+# R files
+.Rhistory
+.RData
+.Rproj.user
+*.Rproj
+
+# Temporary files
+~$*.xlsx
+~$*.xls
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Packrat
+packrat/lib*/
+packrat/src/
+
+# rsconnect deployment folder (optional - keep if you want to track deployments)
+# rsconnect/
