@@ -74,7 +74,7 @@ ui <- dashboardPage(
       menuItem("AIMS", tabName = "dashboard_aims", icon = icon("bullseye"))
     )),
     div(class = "sidebar-footer",
-        img(src = "images/jubilee.png", class = "jubilee-logo"),
+        # img(src = "images/jubilee.png", class = "jubilee-logo"),
         img(src = "images/kenbright.png")
     )
   ),
