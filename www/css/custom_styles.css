@@ -267,6 +267,8 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
   border: 1px solid rgba(255, 255, 255, 0.8) !important;
   border-radius: 10px !important;
+  position: relative;
+  z-index: 1;
 }
 
 /* Set the background color of the sidebar with gradient */
@@ -472,10 +474,40 @@ body .main-sidebar .sidebar .sidebar-menu li a:hover {
   padding: 6px 12px;
   font-size: 14px;
   background-color: #fff;
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure dropdown menus appear above everything */
+.selectize-dropdown {
+  z-index: 10000 !important;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  position: absolute !important;
+}
+
+.selectize-dropdown-content {
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .selectize-dropdown-content > div:hover {
-  background-color: #f1f1f1;
+  background-color: #E3F2FD;
+  color: #1A73E8;
+}
+
+/* Ensure the select controls have proper z-index */
+.filter-item .selectize-control {
+  z-index: 100;
+  position: relative;
+}
+
+/* Make sure filter section is positioned correctly */
+.filters-section {
+  position: relative;
+  z-index: 10;
 }
 
 

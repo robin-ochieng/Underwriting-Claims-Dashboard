@@ -18,8 +18,23 @@ library(shinyjs)
 library(extrafont)
 suppressMessages(loadfonts())
 
-# Load Claims Data 
-claims_data <- read_excel("./data/Selected_Claims_Data.xlsx", col_types = c("text", "text", "date", "text", "text", "text", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "numeric", "date")) %>%
+# Load GIIS Data 
+giis_paid <- read_excel("data/GIIS_Paid_OS.xlsx", col_types = c("text", "text", "text", 
+        "text", "date", "date", "date", "text", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric"),  sheet = "Paid") %>%
+  mutate(
+    Year = format(LOSS_DATE, "%Y"),
+    Month = format(LOSS_DATE, "%B"),
+    Quarter = paste0("Q", lubridate::quarter(LOSS_DATE))
+  )
+
+# Load AIMS Data
+aims_paid <- read_excel("data/AIMS_Paid_OS.xlsx", 
+    col_types = c("text", "text", "text", 
+        "text", "date", "date", "date", "text", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric"), sheet = "Paid") %>%
   mutate(
     Year = format(LOSS_DATE, "%Y"),
     Month = format(LOSS_DATE, "%B"),
@@ -120,26 +135,34 @@ ui <- dashboardPage(
   ),
   footer = bs4DashFooter(
     div(style = "background-color: #ffffff; color: #000000; text-align: center; padding: 6px; font-size: 10px", 
-        "© 2025 GIIS & AIMS Dashboard. All rights reserved.")
+        "© 2025 Claims Dashboard. All rights reserved.")
   )
 )
 
 # Define server logic
 server <- function(input, output, session) {
   
-  # Claims Data -----------------------------------------------------------------------------------
-  # Filtered Claims Data
-  filtered_claims_data <- reactive({
-    req(claims_data)
-    data <- claims_data 
+  # GIIS Data -----------------------------------------------------------------------------------
+  # Filtered GIIS Paid Data
+  filtered_giis_paid <- reactive({
+    req(giis_paid)
+    data <- giis_paid 
+    data
+  })
+  
+  # AIMS Data -----------------------------------------------------------------------------------
+  # Filtered AIMS Paid Data
+  filtered_aims_paid <- reactive({
+    req(aims_paid)
+    data <- aims_paid 
     data
   })
 
   # GIIS Dashboard Server Module
-  giisDashboardServer("giis_dashboard", data = filtered_claims_data)
+  giisDashboardServer("giis_dashboard", paid_data = filtered_giis_paid)
   
   # AIMS Dashboard Server Module
-  aimsDashboardServer("aims_dashboard", data = filtered_claims_data)
+  aimsDashboardServer("aims_dashboard", paid_data = filtered_aims_paid)
 
 }
 

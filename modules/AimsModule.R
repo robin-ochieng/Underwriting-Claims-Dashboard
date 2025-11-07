@@ -13,24 +13,23 @@ aimsDashboardUI <- function(id) {
     actionButton(ns("print_dashboard"), "Print as PDF", icon = icon("print"), class = "btn btn-primary control-button"),
     fluidRow(
       class = "value-box-row",
-      column(
-        width = 4,
-        uiOutput(ns("total_paid_os"))
-      ),
-      column(
-        width = 4,
-        uiOutput(ns("total_recovery"))
-      ),
-      column(
-        width = 4,
-        uiOutput(ns("total_xol_claims"))
-      )
+      column(width = 3, uiOutput(ns("total_paid_os"))),
+      column(width = 3, uiOutput(ns("total_outstanding"))),
+      column(width = 3, uiOutput(ns("avg_cost_paid"))),
+      column(width = 3, uiOutput(ns("total_reported")))
+    ),
+    fluidRow(
+      class = "value-box-row",
+      column(width = 3, uiOutput(ns("settlement_ratio"))),
+      column(width = 3, uiOutput(ns("median_days_payment"))),
+      column(width = 3, uiOutput(ns("largest_claim_paid"))),
+      column(width = 3, uiOutput(ns("top_subclass_paid_share")))
     ),
     fluidRow(
       column(12,
         div(class = "filters-section no-print",
             div(class = "filters-header", 
-                h5("Filter by Policy Inception Period", class = "filters-title"), 
+                h5("Filter by Loss Period", class = "filters-title"), 
                 actionButton(ns("reset_filters"), HTML("<i class='fa fa-undo'></i> Reset Filters"), class = "btn-reset-filters")
             ),
             div(class = "premium-filters-container",
@@ -54,7 +53,7 @@ aimsDashboardUI <- function(id) {
       column(
         width = 6,
         box(
-          title = "Gross Claims by Month",
+          title = "Gross Claims by Loss Month",
           width = 12,
           status = "white",
           solidHeader = TRUE,
@@ -65,7 +64,7 @@ aimsDashboardUI <- function(id) {
       column(
         width = 6,
         box(
-          title = "Claim Count by Month",
+          title = "Claim Count by Loss Month",
           width = 12,
           status = "white",
           solidHeader = TRUE,
@@ -78,7 +77,31 @@ aimsDashboardUI <- function(id) {
       column(
         width = 6,
         box(
-          title = "Gross Claims by Quarter",
+          title = "Claim Count by Day of Week",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("claimcount_by_weekday")), type = 6)
+        )
+      ),
+      column(
+        width = 6,
+        box(
+          title = "Gross Claims by Day of Week",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("claims_by_weekday")), type = 6)
+        )
+      )
+    ),
+    fluidRow(
+      column(
+        width = 6,
+        box(
+          title = "Gross Claims by Loss Quarter",
           width = 12,
           status = "white",
           solidHeader = TRUE,
@@ -89,36 +112,12 @@ aimsDashboardUI <- function(id) {
       column(
         width = 6,
         box(
-          title = "Claim Count by Quarter",
+          title = "Claim Count by Loss Quarter",
           width = 12,
           status = "white",
           solidHeader = TRUE,
           collapsible = TRUE,
           withSpinner(plotlyOutput(ns("claimcount_by_quarter")), type = 6)
-        )
-      )
-    ),
-    fluidRow(
-      column(
-        width = 6,
-        box(
-          title = "Average Time to Payment by Subclass",
-          width = 12,
-          status = "white",
-          solidHeader = TRUE,
-          collapsible = TRUE,
-          withSpinner(plotOutput(ns("approval_time_boxplot")), type = 6)
-        )
-      ),
-      column(
-        width = 6,
-        box(
-          title = "Average Time to Payment by Branch",
-          width = 12,
-          status = "white",
-          solidHeader = TRUE,
-          collapsible = TRUE,
-          withSpinner(plotOutput(ns("approval_time_by_branch")), type = 6)
         )
       )
     ),
@@ -145,30 +144,6 @@ aimsDashboardUI <- function(id) {
           withSpinner(plotlyOutput(ns("count_by_class")), type = 6)
         )
       )
-    ),
-    fluidRow(
-      column(
-        width = 6,
-        box(
-          title = "Gross Claims by Branch",
-          width = 12,
-          status = "white",
-          solidHeader = TRUE,
-          collapsible = TRUE,
-          withSpinner(plotlyOutput(ns("claims_by_branch")), type = 6)
-        )
-      ),
-      column(
-        width = 6,
-        box(
-          title = "Claim Count by Branch",
-          width = 12,
-          status = "white",
-          solidHeader = TRUE,
-          collapsible = TRUE,
-          withSpinner(plotlyOutput(ns("count_by_branch")), type = 6)
-        )
-      )
     )
 
   )
@@ -176,7 +151,7 @@ aimsDashboardUI <- function(id) {
 
 
 # Server logic for AIMS dashboard
-aimsDashboardServer <- function(id, data) {
+aimsDashboardServer <- function(id, paid_data) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns  
 
@@ -185,24 +160,24 @@ aimsDashboardServer <- function(id, data) {
     })
 
     observe({
-      req(data())
+      req(paid_data())
       updateSelectInput(session, "claims_year",
-                        choices = c("Select Year", sort(unique(data()$Year))),
+                        choices = c("Select Year", sort(unique(paid_data()$Year))),
                         selected = "Select Year")
       quarter_order <- c("Q1", "Q2", "Q3", "Q4")
-      available_quarters <- intersect(quarter_order, unique(data()$Quarter))
+      available_quarters <- intersect(quarter_order, unique(paid_data()$Quarter))
       updateSelectInput(session, "claims_quarter",
                         choices = c("Select Quarter", available_quarters),
                         selected = "Select Quarter")
       month_order <- month.name
-      available_months <- intersect(month_order, unique(data()$Month))
+      available_months <- intersect(month_order, unique(paid_data()$Month))
       updateSelectInput(session, "claims_month",
                         choices = c("Select Month", available_months),
                         selected = "Select Month")
     })
 
     filtered_data <- reactive({
-      df <- data()
+      df <- paid_data()
       req(input$claims_year, input$claims_quarter, input$claims_month)
       if (input$claims_year != "Select Year") {
         df <- df %>% filter(Year == input$claims_year)
@@ -222,25 +197,119 @@ aimsDashboardServer <- function(id, data) {
       updateSelectInput(session, "claims_month", selected = "Select Month")
     })
 
-    # Total Paid + Outstanding
+    # Helper reactives for KPI calculations
+    get_paid_total <- reactive({
+      filtered_data() %>%
+        filter(Category == "Paid") %>%
+        summarise(val = sum(PAID_OS, na.rm = TRUE)) %>%
+        dplyr::pull(val) %>%
+        {
+          if (length(.) == 0 || is.na(.)) 0 else .
+        }
+    })
+
+    get_out_total <- reactive({
+      filtered_data() %>%
+        filter(Category == "Outstanding") %>%
+        summarise(val = sum(PAID_OS, na.rm = TRUE)) %>%
+        dplyr::pull(val) %>%
+        {
+          if (length(.) == 0 || is.na(.)) 0 else .
+        }
+    })
+
+    # Total Paid Claims
     output$total_paid_os <- renderUI({
-      df <- filtered_data()
-      total_paid_os <- sum(df$PAID_OS, na.rm = TRUE)
-      customValueBox("Total Paid/OS", comma(total_paid_os), "#2980B9")
+      total_paid <- get_paid_total()
+      customValueBox("Total Paid Claims", scales::comma(total_paid), "#2980B9")
     })
 
-    # Total Recovery
-    output$total_recovery <- renderUI({
-      df <- filtered_data()
-      total_recovery <- sum(df$RECOVARY, na.rm = TRUE)
-      customValueBox("Total Recoveries", comma(total_recovery), "#27AE60")
+    # Total Outstanding Claims
+    output$total_outstanding <- renderUI({
+      total_out <- get_out_total()
+      customValueBox("Total Outstanding Claims", scales::comma(total_out), "#27AE60")
     })
 
-    # Total XOL Claims
-    output$total_xol_claims <- renderUI({
+    # Average Cost per Paid Claim
+    output$avg_cost_paid <- renderUI({
+      df_paid <- filtered_data() %>% filter(Category == "Paid")
+      n_paid <- nrow(df_paid)
+      paid_total <- sum(df_paid$PAID_OS, na.rm = TRUE)
+      avg_paid <- ifelse(n_paid > 0, paid_total / n_paid, 0)
+      customValueBox("Average Cost per Paid Claim", scales::comma(avg_paid), "#E67E22")
+    })
+
+    # Total Reported Claims
+    output$total_reported <- renderUI({
       df <- filtered_data()
-      total_xol <- sum(df$XOL_AMOUNT, na.rm = TRUE)
-      customValueBox("XOL Claims Incurred", comma(total_xol), "#E67E22")
+      # Check if the column exists, try both with and without backticks
+      if ("Claim No" %in% names(df)) {
+        reported_count <- df %>% distinct(`Claim No`) %>% nrow()
+      } else if ("Claim.No" %in% names(df)) {
+        reported_count <- df %>% distinct(Claim.No) %>% nrow()
+      } else if ("CLAIM_NO" %in% names(df)) {
+        reported_count <- df %>% distinct(CLAIM_NO) %>% nrow()
+      } else {
+        # Fallback: count all rows if column not found
+        reported_count <- nrow(df)
+      }
+      reported_count <- ifelse(is.na(reported_count) || length(reported_count) == 0, 0, reported_count)
+      customValueBox("Total Reported Claims", scales::comma(reported_count), "#17A2B8")
+    })
+
+    # Settlement Ratio
+    output$settlement_ratio <- renderUI({
+      paid_total <- get_paid_total()
+      out_total <- get_out_total()
+      denom <- paid_total + out_total
+      ratio <- ifelse(denom > 0, paid_total / denom, 0)
+      customValueBox("Settlement Ratio", scales::percent(ratio, accuracy = 0.1), "#6C5CE7")
+    })
+
+    # ---- 1) Median Days to Payment (Loss -> Approval for Paid claims) ----
+    output$median_days_payment <- renderUI({
+      df <- filtered_data() %>%
+        dplyr::filter(Category == "Paid", !is.na(LOSS_DATE), !is.na(APPRV_DATE1)) %>%
+        dplyr::mutate(
+          LOSS_DATE = as.Date(LOSS_DATE),
+          APPRV_DATE1 = as.Date(APPRV_DATE1),
+          DaysToPayment = as.numeric(APPRV_DATE1 - LOSS_DATE)
+        ) %>%
+        dplyr::filter(DaysToPayment >= 0 & DaysToPayment < 3650)  # guard rails
+
+      med_days <- if (nrow(df) > 0) stats::median(df$DaysToPayment, na.rm = TRUE) else 0
+      customValueBox("Median Days to Payment", scales::comma(med_days), "#7F8CFF")
+    })
+
+    # ---- 2) Largest Single Claim Paid ----
+    output$largest_claim_paid <- renderUI({
+      df_paid <- filtered_data() %>%
+        dplyr::filter(Category == "Paid")
+
+      max_paid <- if (nrow(df_paid) > 0) max(df_paid$PAID_OS, na.rm = TRUE) else 0
+      max_paid <- ifelse(is.na(max_paid) || is.infinite(max_paid), 0, max_paid)
+      customValueBox("Largest Single Claim Paid", scales::comma(max_paid), "#FF7675")
+    })
+
+    # ---- 3) Top Subclass by Paid (Share %) ----
+    output$top_subclass_paid_share <- renderUI({
+      df_paid <- filtered_data() %>%
+        dplyr::filter(Category == "Paid", !is.na(SUBCLASS_NAME)) %>%
+        dplyr::group_by(SUBCLASS_NAME) %>%
+        dplyr::summarise(Paid = sum(PAID_OS, na.rm = TRUE), .groups = "drop") %>%
+        dplyr::arrange(dplyr::desc(Paid))
+
+      total_paid <- get_paid_total()
+      if (nrow(df_paid) == 0 || total_paid <= 0) {
+        return(customValueBox("Top Class by Paid (Share)", "—", "#00B894"))
+      }
+
+      top_row <- df_paid[1, ]
+      share <- as.numeric(top_row$Paid) / total_paid
+      subtitle <- paste0(as.character(top_row$SUBCLASS_NAME), " · ",
+                         scales::percent(share, accuracy = 0.1))
+
+      customValueBox("Top Class by Paid (Share)", subtitle, "#00B894")
     })
 
     output$claims_by_month <- renderPlotly({
@@ -320,6 +389,93 @@ aimsDashboardServer <- function(id, data) {
           margin = list(b = 30, t = 20), 
           xaxis = list(title = "Month", tickangle = -45, tickfont = list(size = 10)),
           yaxis = list(title = "Count", tickfont = list(size = 10)),
+          font = list(family = "Mulish"),
+          plot_bgcolor = "white",
+          paper_bgcolor = "white"
+        )
+    })
+
+    output$claimcount_by_weekday <- renderPlotly({
+      days_order <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+      df <- filtered_data() %>%
+        filter(!is.na(LOSS_DATE)) %>%
+        mutate(
+          DayOfWeek = wday(as.Date(LOSS_DATE), label = TRUE, abbr = FALSE, week_start = 1),
+          DayOfWeek = factor(as.character(DayOfWeek), levels = days_order)
+        ) %>%
+        group_by(DayOfWeek) %>%
+        summarise(ClaimCount = n()) %>%
+        tidyr::complete(DayOfWeek = factor(days_order, levels = days_order), fill = list(ClaimCount = 0)) %>%
+        ungroup() %>%
+        mutate(
+          Label = case_when(
+            ClaimCount >= 1e3 ~ paste0(formatC(ClaimCount / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(ClaimCount, format = "d", big.mark = ",")
+          ),
+          DayLabel = as.character(DayOfWeek)
+        )
+
+      plot_ly(
+        df,
+        x = ~DayOfWeek,
+        y = ~ClaimCount,
+        type = 'bar',
+        text = ~Label,
+        textposition = 'outside',
+        textfont = list(size = 9, color = "black"),
+        hoverinfo = 'text',
+        hovertext = ~paste("Day:", DayLabel, "<br>Claim Count:", formatC(ClaimCount, format = "d", big.mark = ",")),
+        marker = list(color = '#EA80FC')
+      ) %>%
+        layout(
+          title = list(text = "Claim Count by Day of Week", x = 0.01, xanchor = "left", font = list(size = 14)),
+          margin = list(b = 60, t = 40),
+          xaxis = list(title = "Day", tickfont = list(size = 10)),
+          yaxis = list(title = "Claim Count", tickfont = list(size = 10)),
+          font = list(family = "Mulish"),
+          plot_bgcolor = "white",
+          paper_bgcolor = "white"
+        )
+    })
+
+    output$claims_by_weekday <- renderPlotly({
+      days_order <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+      df <- filtered_data() %>%
+        filter(!is.na(LOSS_DATE)) %>%
+        mutate(
+          DayOfWeek = wday(as.Date(LOSS_DATE), label = TRUE, abbr = FALSE, week_start = 1),
+          DayOfWeek = factor(as.character(DayOfWeek), levels = days_order)
+        ) %>%
+        group_by(DayOfWeek) %>%
+        summarise(TotalClaims = sum(PAID_OS, na.rm = TRUE)) %>%
+        tidyr::complete(DayOfWeek = factor(days_order, levels = days_order), fill = list(TotalClaims = 0)) %>%
+        ungroup() %>%
+        mutate(
+          Label = case_when(
+            TotalClaims >= 1e6 ~ paste0(formatC(TotalClaims / 1e6, format = "f", digits = 0, big.mark = ","), " M"),
+            TotalClaims >= 1e3 ~ paste0(formatC(TotalClaims / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(TotalClaims, format = "f", digits = 0, big.mark = ",")
+          ),
+          DayLabel = as.character(DayOfWeek)
+        )
+
+      plot_ly(
+        df,
+        x = ~DayOfWeek,
+        y = ~TotalClaims,
+        type = 'bar',
+        text = ~Label,
+        textposition = 'outside',
+        textfont = list(size = 9, color = "black"),
+        hoverinfo = 'text',
+        hovertext = ~paste("Day:", DayLabel, "<br>Total Claims:", scales::comma(TotalClaims), " KES"),
+        marker = list(color = '#00BFA5')
+      ) %>%
+        layout(
+          title = list(text = "Gross Claims by Day of Week", x = 0.01, xanchor = "left", font = list(size = 14)),
+          margin = list(b = 60, t = 40),
+          xaxis = list(title = "Day", tickfont = list(size = 10)),
+          yaxis = list(title = "Total Claims (KES)", tickfont = list(size = 10)),
           font = list(family = "Mulish"),
           plot_bgcolor = "white",
           paper_bgcolor = "white"
@@ -428,8 +584,8 @@ aimsDashboardServer <- function(id, data) {
                     y = DaysToApproval, fill = SUBCLASS_NAME)) +
         geom_boxplot(outlier.color = "red", outlier.shape = 1, alpha = 0.7) +
         labs(
-          title = "Distribution of Time from Loss to Payment by Subclass",
-          x = "Subclass",
+          title = "Distribution of Time from Loss to Payment by Class",
+          x = "Class",
           y = "Days Between Loss and Paid Date"
         ) +
         theme_minimal(base_family = "Mulish") +
@@ -549,81 +705,6 @@ aimsDashboardServer <- function(id, data) {
           paper_bgcolor = "white"
         )
     })
-
-    output$claims_by_branch <- renderPlotly({
-      df <- filtered_data() %>%
-        filter(!is.na(BRANCH_NAME1)) %>%
-        group_by(BRANCH_NAME1) %>%
-        summarize(TotalClaims = sum(PAID_OS, na.rm = TRUE)) %>%
-        mutate(
-          Label = case_when(
-            TotalClaims >= 1e6 ~ paste0(formatC(TotalClaims / 1e6, format = "f", digits = 0, big.mark = ","), " M"),
-            TotalClaims >= 1e3 ~ paste0(formatC(TotalClaims / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
-            TRUE ~ formatC(TotalClaims, format = "f", digits = 0, big.mark = ",")
-          ),
-          Branch = fct_reorder(BRANCH_NAME1, TotalClaims)
-        )%>%
-        arrange(TotalClaims)
-
-      plot_ly(
-        df,
-        x = ~TotalClaims,
-        y = ~Branch,
-        type = 'bar',
-        orientation = 'h',
-        marker = list(color = '#80FCEB'),
-        text = ~Label,
-        textposition = 'auto',
-        textfont = list(size = 9, color = "#333333"),
-        hoverinfo = 'text',
-        hovertext = ~paste("Branch:", BRANCH_NAME1, "<br>Total claims:", Label)
-      ) %>%
-        layout(
-          title = list(text = "claims by Branch", x = 0.01, xanchor = "left", font = list(size = 14)),
-          yaxis = list(title = "", tickfont = list(size = 8, color = "#333333")),
-          xaxis = list(title = "Total claims (KES)", tickfont = list(size = 10, color = "#333333")),
-          font = list(family = "Mulish", color = "#333333"),
-          margin = list(l = 10, r = 80, b = 10, t = 30),
-          plot_bgcolor = "white",
-          paper_bgcolor = "white"
-        )
-    })
-
-    output$count_by_branch <- renderPlotly({
-      df <- filtered_data() %>%
-        filter(!is.na(BRANCH_NAME1)) %>%
-        count(BRANCH_NAME1) %>%
-        mutate(
-          Label = case_when(
-            n >= 1e3 ~ paste0(formatC(n / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
-            TRUE ~ formatC(n, format = "d", big.mark = ",")
-          ),
-          Branch = fct_reorder(BRANCH_NAME1, n)
-        )
-      plot_ly(
-        df,
-        x = ~n,
-        y = ~Branch,
-        type = 'bar',
-        orientation = 'h',
-        marker = list(color = '#EA80FC'),
-        text = ~Label,
-        textposition = 'auto',
-        textfont = list(size = 9, color = "#333333"),
-        hoverinfo = 'text',
-        hovertext = ~paste("Branch:", BRANCH_NAME1, "<br>Policies:", Label)
-      ) %>%
-        layout(
-          title = list(text = "Claim Count by Branch", x = 0.01, xanchor = "left", font = list(size = 14)),
-          yaxis = list(title = "", tickfont = list(size = 8, color = "#333333")),
-          xaxis = list(title = "Claim Count", tickfont = list(size = 10, color = "#333333")),
-          font = list(family = "Mulish", color = "#333333"),
-          margin = list(l = 100, r = 10, b = 10, t = 40),
-          plot_bgcolor = "white",
-          paper_bgcolor = "white"
-        )
-    })
-
 
   })
 }
