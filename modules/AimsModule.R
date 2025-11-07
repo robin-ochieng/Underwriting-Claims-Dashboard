@@ -101,6 +101,30 @@ aimsDashboardUI <- function(id) {
       column(
         width = 6,
         box(
+          title = "Gross Claims by Loss Month",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("claims_by_month")), type = 6)
+        )
+      ),
+      column(
+        width = 6,
+        box(
+          title = "Claim Count by Loss Month",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("claimcount_by_month")), type = 6)
+        )
+      )
+    ),
+    fluidRow(
+      column(
+        width = 6,
+        box(
           title = "Gross Claims by Loss Quarter",
           width = 12,
           status = "white",
@@ -208,7 +232,7 @@ aimsDashboardUI <- function(id) {
       column(
         width = 6,
         box(
-          title = "Loss→Report Lag (Heatmap)",
+          title = "Top 10 Largest COUNT OF Claims (Paid)",
           width = 12,
           status = "white",
           solidHeader = TRUE,
@@ -499,6 +523,90 @@ aimsDashboardServer <- function(id, paid_data) {
           ),
           margin = list(b = 30, t = 20), 
           xaxis = list(title = "Loss Date", tickfont = list(size = 10)),
+          yaxis = list(title = "Count", tickfont = list(size = 10)),
+          font = list(family = "Mulish"),
+          plot_bgcolor = "white",
+          paper_bgcolor = "white"
+        )
+    })
+
+    # Gross Claims by Loss Month
+    output$claims_by_month <- renderPlotly({
+      df <- filtered_data() %>%
+        filter(!is.na(LOSS_DATE)) %>%
+        mutate(Month = format(as.Date(LOSS_DATE), "%B")) %>%
+        mutate(Month = factor(Month, levels = month.name)) %>%
+        group_by(Month) %>%
+        summarise(TotalClaims = sum(PAID_OS, na.rm = TRUE)) %>%
+        mutate(
+          Label = case_when(
+            TotalClaims >= 1e6 ~ paste0(formatC(TotalClaims / 1e6, format = "f", digits = 0, big.mark = ","), " M"),
+            TotalClaims >= 1e3 ~ paste0(formatC(TotalClaims / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(TotalClaims, format = "f", digits = 0, big.mark = ",")
+          )
+        )
+      plot_ly(df, 
+              x = ~Month, 
+              y = ~TotalClaims, 
+              type = 'scatter', 
+              mode = 'lines+markers+text',
+              text = ~Label,
+              textposition = 'top center',              
+              textfont = list(size = 8, color = 'black'),
+              hoverinfo = 'text',
+              line = list(color = '#00BFA5'),
+              marker = list(size = 6)) %>%
+        layout(
+          title = list(
+            text = "Monthly Gross Claims Trend",
+            x = 0.01,  # left-align title
+            xanchor = "left",
+            font = list(size = 14)
+          ),
+          margin = list(b = 60), 
+          xaxis = list(title = "Month", tickangle = -45, tickfont = list(size = 10)),
+          yaxis = list(title = "Total Claims (KES)", tickfont = list(size = 10)),
+          font = list(family = "Mulish"),
+          plot_bgcolor = "white",
+          paper_bgcolor = "white"
+        )
+    })
+
+    # Claim Count by Loss Month
+    output$claimcount_by_month <- renderPlotly({
+      df <- filtered_data() %>%
+        filter(!is.na(LOSS_DATE)) %>%
+        mutate(Month = format(as.Date(LOSS_DATE), "%B")) %>%
+        mutate(Month = factor(Month, levels = month.name)) %>%
+        group_by(Month) %>%
+        summarise(ClaimCount = n()) %>%
+        mutate(
+          Label = case_when(
+            ClaimCount >= 1e3 ~ paste0(formatC(ClaimCount / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(ClaimCount, format = "d", big.mark = ",")
+          )
+        )
+
+      plot_ly(df, 
+              x = ~Month, 
+              y = ~ClaimCount, 
+              type = 'scatter', 
+              mode = 'lines+markers+text',
+              text = ~Label,
+              textposition = 'top center',
+              textfont = list(size = 8, color = 'black'),
+              hoverinfo = 'text',
+              line = list(color = '#EA80FC'),
+              marker = list(size = 6)) %>%
+        layout(
+          title = list(
+            text = "Monthly Claim Count Trend",
+            x = 0.01,  # left-align title
+            xanchor = "left",
+            font = list(size = 14)
+          ),
+          margin = list(b = 30, t = 20), 
+          xaxis = list(title = "Month", tickangle = -45, tickfont = list(size = 10)),
           yaxis = list(title = "Count", tickfont = list(size = 10)),
           font = list(family = "Mulish"),
           plot_bgcolor = "white",
@@ -917,55 +1025,85 @@ aimsDashboardServer <- function(id, paid_data) {
         )
     })
 
-    # 5) Top 10 Largest Claims (Paid)
+    # 5) Top 10 Largest Claims (Paid) - Insured vs Paid
     output$top10_largest <- renderPlotly({
       df <- filtered_data() %>%
-        dplyr::filter(Category == "Paid") %>%
-        dplyr::mutate(Paid = PAID_OS) %>%
+        dplyr::filter(Category == "Paid", !is.na(Insured)) %>%
+        dplyr::group_by(Insured) %>%
+        dplyr::summarise(Paid = sum(PAID_OS, na.rm = TRUE), .groups = "drop") %>%
         dplyr::arrange(dplyr::desc(Paid)) %>%
-        dplyr::slice_head(n = 10)
+        dplyr::slice_head(n = 10) %>%
+        dplyr::mutate(
+          Label = case_when(
+            Paid >= 1e6 ~ paste0(formatC(Paid / 1e6, format = "f", digits = 0, big.mark = ","), " M"),
+            Paid >= 1e3 ~ paste0(formatC(Paid / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(Paid, format = "f", digits = 0, big.mark = ",")
+          ),
+          # Truncate long names for y-axis display
+          InsuredShort = ifelse(nchar(Insured) > 35, 
+                                paste0(substr(Insured, 1, 32), "..."), 
+                                Insured)
+        )
 
       if (nrow(df) == 0) return(NULL)
 
       plot_ly(
-        df, x = ~Paid, y = ~reorder(ClaimNo, Paid),
+        df, x = ~Paid, y = ~reorder(InsuredShort, Paid),
         type = "bar", orientation = "h",
-        hovertext = ~paste("Claim:", ClaimNo, "<br>Insured:", Insured, "<br>Paid:", scales::comma(Paid)),
+        text = ~Label,
+        textposition = "outside",
+        textfont = list(size = 9, color = "black"),
+        hovertext = ~paste("Insured:", Insured, "<br>Paid:", scales::comma(Paid)),
         hoverinfo = "text", 
         marker = list(color = "#00BFA5")
       ) %>%
         layout(
-          title = list(text = "Top 10 Largest Claims", x = 0.01, xanchor = "left", font = list(size = 14)),
+          title = list(text = "Top 10 Largest Claims (Paid)", x = 0.01, xanchor = "left", font = list(size = 14)),
           xaxis = list(title = "Paid (KES)"),
-          yaxis = list(title = "Claim No"),
+          yaxis = list(title = "Insured", tickfont = list(size = 9)),
+          margin = list(l = 250),
           plot_bgcolor = "white", 
           paper_bgcolor = "white",
           font = list(family = "Mulish")
         )
     })
 
-    # 6) Loss→Report Lag Heatmap
+    # 6) Top 10 Largest COUNT OF Claims (Paid) - Insured vs Claim Count
     output$loss_to_report_heatmap <- renderPlotly({
       df <- filtered_data() %>%
-        dplyr::filter(!is.na(LOSS_DATE), !is.na(Reported)) %>%
+        dplyr::filter(Category == "Paid", !is.na(Insured)) %>%
+        dplyr::group_by(Insured) %>%
+        dplyr::summarise(ClaimCount = n(), .groups = "drop") %>%
+        dplyr::arrange(dplyr::desc(ClaimCount)) %>%
+        dplyr::slice_head(n = 10) %>%
         dplyr::mutate(
-          LossMonth = lubridate::floor_date(as.Date(LOSS_DATE), "month"),
-          LagDays   = as.numeric(as.Date(Reported) - as.Date(LOSS_DATE)),
-          LagBucket = cut(LagDays, breaks = c(-Inf, 7, 30, 90, Inf),
-                          labels = c("0–7d", "8–30d", "31–90d", ">90d"))
-        ) %>%
-        dplyr::count(LossMonth, LagBucket, name = "N")
+          Label = case_when(
+            ClaimCount >= 1e3 ~ paste0(formatC(ClaimCount / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(ClaimCount, format = "d", big.mark = ",")
+          ),
+          # Truncate long names for y-axis display
+          InsuredShort = ifelse(nchar(Insured) > 35, 
+                                paste0(substr(Insured, 1, 32), "..."), 
+                                Insured)
+        )
 
       if (nrow(df) == 0) return(NULL)
 
       plot_ly(
-        df, x = ~LossMonth, y = ~LagBucket, z = ~N,
-        type = "heatmap", colorscale = "Blues"
+        df, x = ~ClaimCount, y = ~reorder(InsuredShort, ClaimCount),
+        type = "bar", orientation = "h",
+        text = ~Label,
+        textposition = "outside",
+        textfont = list(size = 9, color = "black"),
+        hovertext = ~paste("Insured:", Insured, "<br>Claim Count:", formatC(ClaimCount, format = "d", big.mark = ",")),
+        hoverinfo = "text", 
+        marker = list(color = "#EA80FC")
       ) %>%
         layout(
-          title = list(text = "Loss→Report Lag Heatmap", x = 0.01, xanchor = "left", font = list(size = 14)),
-          xaxis = list(title = "Loss Month"),
-          yaxis = list(title = "Lag Bucket"),
+          title = list(text = "Top 10 Largest COUNT OF Claims (Paid)", x = 0.01, xanchor = "left", font = list(size = 14)),
+          xaxis = list(title = "Claim Count"),
+          yaxis = list(title = "Insured", tickfont = list(size = 9)),
+          margin = list(l = 250),
           plot_bgcolor = "white", 
           paper_bgcolor = "white",
           font = list(family = "Mulish")
