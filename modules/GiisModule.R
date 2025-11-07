@@ -144,6 +144,78 @@ giisDashboardUI <- function(id) {
           withSpinner(plotlyOutput(ns("count_by_class")), type = 6)
         )
       )
+    ),
+    fluidRow(
+      column(
+        width = 6,
+        box(
+          title = "Severity Distribution (Paid)",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("severity_dist")), type = 6)
+        )
+      ),
+      column(
+        width = 6,
+        box(
+          title = "Paid Mix by Subclass (Treemap)",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("paid_treemap")), type = 6)
+        )
+      )
+    ),
+    fluidRow(
+      column(
+        width = 6,
+        box(
+          title = "Recoveries by Month & Type",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("recoveries_by_month")), type = 6)
+        )
+      ),
+      column(
+        width = 6,
+        box(
+          title = "Days to Report vs Days to Payment",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("timeline_scatter")), type = 6)
+        )
+      )
+    ),
+    fluidRow(
+      column(
+        width = 6,
+        box(
+          title = "Top 10 Largest Claims (Paid)",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("top10_largest")), type = 6)
+        )
+      ),
+      column(
+        width = 6,
+        box(
+          title = "Loss→Report Lag (Heatmap)",
+          width = 12,
+          status = "white",
+          solidHeader = TRUE,
+          collapsible = TRUE,
+          withSpinner(plotlyOutput(ns("loss_to_report_heatmap")), type = 6)
+        )
+      )
     )
   )
 }
@@ -642,6 +714,161 @@ giisDashboardServer <- function(id, paid_data) {
           font = list(family = "Mulish"),
           plot_bgcolor = "white",
           paper_bgcolor = "white"
+        )
+    })
+
+    # 1) Severity Distribution (Paid, log-scale X)
+    output$severity_dist <- renderPlotly({
+      df <- filtered_data() %>%
+        dplyr::filter(Category == "Paid", !is.na(PAID_OS), PAID_OS > 0)
+
+      if (nrow(df) == 0) return(NULL)
+
+      q95 <- stats::quantile(df$PAID_OS, 0.95, na.rm = TRUE)
+      q99 <- stats::quantile(df$PAID_OS, 0.99, na.rm = TRUE)
+
+      g <- ggplot(df, aes(x = PAID_OS)) +
+        geom_histogram(bins = 40, fill = "#00BFA5") +
+        scale_x_log10(labels = scales::comma) +
+        geom_vline(xintercept = c(q95, q99), linetype = "dashed", color = "red") +
+        labs(title = "Severity Distribution (log scale)", x = "Paid Amount (KES, log)", y = "Count") +
+        theme_minimal(base_family = "Mulish")
+
+      ggplotly(g)
+    })
+
+    # 2) Paid by Subclass – Treemap
+    output$paid_treemap <- renderPlotly({
+      df <- filtered_data() %>%
+        dplyr::filter(Category == "Paid", !is.na(SUBCLASS_NAME)) %>%
+        dplyr::group_by(SUBCLASS_NAME) %>%
+        dplyr::summarise(Paid = sum(PAID_OS, na.rm = TRUE), .groups = "drop")
+
+      if (nrow(df) == 0) return(NULL)
+
+      plot_ly(
+        df, type = "treemap",
+        labels = ~SUBCLASS_NAME, values = ~Paid,
+        textinfo = "label+value+percent entry",
+        hovertemplate = "%{label}<br>Paid: %{value:,}<extra></extra>"
+      )
+    })
+
+    # 3) Recoveries by Month (QS / SRPL / FAC / XOL)
+    output$recoveries_by_month <- renderPlotly({
+      df <- filtered_data() %>%
+        dplyr::filter(!is.na(APPRV_DATE1)) %>%
+        dplyr::mutate(Month = lubridate::floor_date(as.Date(APPRV_DATE1), "month")) %>%
+        dplyr::group_by(Month) %>%
+        dplyr::summarise(
+          QS   = sum(Amount.QS,   na.rm = TRUE),
+          SRPL = sum(Amount.SRPL, na.rm = TRUE),
+          FAC  = sum(Amount.FAC,  na.rm = TRUE),
+          XOL  = sum(Amount.WAXOL, na.rm = TRUE),
+          .groups = "drop"
+        ) %>%
+        tidyr::pivot_longer(-Month, names_to = "Type", values_to = "Amount")
+
+      if (nrow(df) == 0) return(NULL)
+
+      plot_ly(df, x = ~Month, y = ~Amount, color = ~Type, type = "bar") %>%
+        layout(
+          barmode = "stack",
+          title = list(text = "Recoveries by Month & Type", x = 0.01, xanchor = "left", font = list(size = 14)),
+          yaxis = list(title = "KES"), 
+          xaxis = list(title = "Month"),
+          plot_bgcolor = "white", 
+          paper_bgcolor = "white",
+          font = list(family = "Mulish")
+        )
+    })
+
+    # 4) Operational Timelines: Days to Report vs Days to Payment
+    output$timeline_scatter <- renderPlotly({
+      df <- filtered_data() %>%
+        dplyr::filter(Category == "Paid", !is.na(LOSS_DATE), !is.na(Reported), !is.na(APPRV_DATE1)) %>%
+        dplyr::mutate(
+          LOSS_DATE    = as.Date(LOSS_DATE),
+          Reported     = as.Date(Reported),
+          APPRV_DATE1  = as.Date(APPRV_DATE1),
+          DaysToReport = as.numeric(Reported    - LOSS_DATE),
+          DaysToPayment= as.numeric(APPRV_DATE1 - LOSS_DATE)
+        ) %>%
+        dplyr::filter(DaysToReport >= 0, DaysToPayment >= 0, DaysToPayment < 3650)
+
+      if (nrow(df) == 0) return(NULL)
+
+      plot_ly(
+        df, x = ~DaysToReport, y = ~DaysToPayment,
+        type = "scatter", mode = "markers",
+        hovertext = ~paste("Claim:", ClaimNo, "<br>Subclass:", SUBCLASS_NAME,
+                           "<br>Report:", DaysToReport, "d",
+                           "<br>Payment:", DaysToPayment, "d"),
+        hoverinfo = "text", 
+        marker = list(size = 7, color = "#00BFA5")
+      ) %>%
+        layout(
+          title = list(text = "Days to Report vs Days to Payment", x = 0.01, xanchor = "left", font = list(size = 14)),
+          xaxis = list(title = "Days to Report"),
+          yaxis = list(title = "Days to Payment"),
+          plot_bgcolor = "white", 
+          paper_bgcolor = "white",
+          font = list(family = "Mulish")
+        )
+    })
+
+    # 5) Top 10 Largest Claims (Paid)
+    output$top10_largest <- renderPlotly({
+      df <- filtered_data() %>%
+        dplyr::filter(Category == "Paid") %>%
+        dplyr::mutate(Paid = PAID_OS) %>%
+        dplyr::arrange(dplyr::desc(Paid)) %>%
+        dplyr::slice_head(n = 10)
+
+      if (nrow(df) == 0) return(NULL)
+
+      plot_ly(
+        df, x = ~Paid, y = ~reorder(ClaimNo, Paid),
+        type = "bar", orientation = "h",
+        hovertext = ~paste("Claim:", ClaimNo, "<br>Insured:", Insured, "<br>Paid:", scales::comma(Paid)),
+        hoverinfo = "text", 
+        marker = list(color = "#00BFA5")
+      ) %>%
+        layout(
+          title = list(text = "Top 10 Largest Claims", x = 0.01, xanchor = "left", font = list(size = 14)),
+          xaxis = list(title = "Paid (KES)"),
+          yaxis = list(title = "Claim No"),
+          plot_bgcolor = "white", 
+          paper_bgcolor = "white",
+          font = list(family = "Mulish")
+        )
+    })
+
+    # 6) Loss→Report Lag Heatmap
+    output$loss_to_report_heatmap <- renderPlotly({
+      df <- filtered_data() %>%
+        dplyr::filter(!is.na(LOSS_DATE), !is.na(Reported)) %>%
+        dplyr::mutate(
+          LossMonth = lubridate::floor_date(as.Date(LOSS_DATE), "month"),
+          LagDays   = as.numeric(as.Date(Reported) - as.Date(LOSS_DATE)),
+          LagBucket = cut(LagDays, breaks = c(-Inf, 7, 30, 90, Inf),
+                          labels = c("0–7d", "8–30d", "31–90d", ">90d"))
+        ) %>%
+        dplyr::count(LossMonth, LagBucket, name = "N")
+
+      if (nrow(df) == 0) return(NULL)
+
+      plot_ly(
+        df, x = ~LossMonth, y = ~LagBucket, z = ~N,
+        type = "heatmap", colorscale = "Blues"
+      ) %>%
+        layout(
+          title = list(text = "Loss→Report Lag Heatmap", x = 0.01, xanchor = "left", font = list(size = 14)),
+          xaxis = list(title = "Loss Month"),
+          yaxis = list(title = "Lag Bucket"),
+          plot_bgcolor = "white", 
+          paper_bgcolor = "white",
+          font = list(family = "Mulish")
         )
     })
 
