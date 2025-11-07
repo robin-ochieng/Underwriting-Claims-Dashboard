@@ -173,30 +173,6 @@ aimsDashboardUI <- function(id) {
       column(
         width = 6,
         box(
-          title = "Severity Distribution (Paid)",
-          width = 12,
-          status = "white",
-          solidHeader = TRUE,
-          collapsible = TRUE,
-          withSpinner(plotlyOutput(ns("severity_dist")), type = 6)
-        )
-      ),
-      column(
-        width = 6,
-        box(
-          title = "Paid Mix by Subclass (Treemap)",
-          width = 12,
-          status = "white",
-          solidHeader = TRUE,
-          collapsible = TRUE,
-          withSpinner(plotlyOutput(ns("paid_treemap")), type = 6)
-        )
-      )
-    ),
-    fluidRow(
-      column(
-        width = 6,
-        box(
           title = "Recoveries by Month & Type",
           width = 12,
           status = "white",
@@ -923,43 +899,6 @@ aimsDashboardServer <- function(id, paid_data) {
           plot_bgcolor = "white",
           paper_bgcolor = "white"
         )
-    })
-
-    # 1) Severity Distribution (Paid, log-scale X)
-    output$severity_dist <- renderPlotly({
-      df <- filtered_data() %>%
-        dplyr::filter(Category == "Paid", !is.na(PAID_OS), PAID_OS > 0)
-
-      if (nrow(df) == 0) return(NULL)
-
-      q95 <- stats::quantile(df$PAID_OS, 0.95, na.rm = TRUE)
-      q99 <- stats::quantile(df$PAID_OS, 0.99, na.rm = TRUE)
-
-      g <- ggplot(df, aes(x = PAID_OS)) +
-        geom_histogram(bins = 40, fill = "#00BFA5") +
-        scale_x_log10(labels = scales::comma) +
-        geom_vline(xintercept = c(q95, q99), linetype = "dashed", color = "red") +
-        labs(title = "Severity Distribution (log scale)", x = "Paid Amount (KES, log)", y = "Count") +
-        theme_minimal(base_family = "Mulish")
-
-      ggplotly(g)
-    })
-
-    # 2) Paid by Subclass – Treemap
-    output$paid_treemap <- renderPlotly({
-      df <- filtered_data() %>%
-        dplyr::filter(Category == "Paid", !is.na(SUBCLASS_NAME)) %>%
-        dplyr::group_by(SUBCLASS_NAME) %>%
-        dplyr::summarise(Paid = sum(PAID_OS, na.rm = TRUE), .groups = "drop")
-
-      if (nrow(df) == 0) return(NULL)
-
-      plot_ly(
-        df, type = "treemap",
-        labels = ~SUBCLASS_NAME, values = ~Paid,
-        textinfo = "label+value+percent entry",
-        hovertemplate = "%{label}<br>Paid: %{value:,}<extra></extra>"
-      )
     })
 
     # 3) Recoveries by Month (QS / SRPL / FAC / XOL)
