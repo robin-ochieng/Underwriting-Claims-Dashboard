@@ -53,23 +53,23 @@ giisDashboardUI <- function(id) {
       column(
         width = 6,
         box(
-          title = "Gross Claims by Loss Month",
+          title = "Gross Claims by Loss Date",
           width = 12,
           status = "white",
           solidHeader = TRUE,
           collapsible = TRUE,
-          withSpinner(plotlyOutput(ns("claims_by_month")), type = 6)
+          withSpinner(plotlyOutput(ns("claims_by_lossdate")), type = 6)
         )
       ),
       column(
         width = 6,
         box(
-          title = "Claim Count by Loss Month",
+          title = "Claim Count by Loss Date",
           width = 12,
           status = "white",
           solidHeader = TRUE,
           collapsible = TRUE,
-          withSpinner(plotlyOutput(ns("claimcount_by_month")), type = 6)
+          withSpinner(plotlyOutput(ns("claimcount_by_lossdate")), type = 6)
         )
       )
     ),
@@ -424,14 +424,55 @@ giisDashboardServer <- function(id, paid_data) {
         )
     })
 
-    # Policy Count by SUB_CLASSNAMEN
-    output$claimcount_by_month <- renderPlotly({
+    # Gross Claims by Loss Date (Daily)
+    output$claims_by_lossdate <- renderPlotly({
       df <- filtered_data() %>%
         filter(!is.na(LOSS_DATE)) %>%
-        mutate(Month = format(as.Date(LOSS_DATE), "%B")) %>%
-        mutate(Month = factor(Month, levels = month.name)) %>%
-        group_by(Month) %>%
+        mutate(LossDate = as.Date(LOSS_DATE)) %>%
+        group_by(LossDate) %>%
+        summarise(TotalClaims = sum(PAID_OS, na.rm = TRUE)) %>%
+        arrange(LossDate) %>%
+        mutate(
+          Label = case_when(
+            TotalClaims >= 1e6 ~ paste0(formatC(TotalClaims / 1e6, format = "f", digits = 0, big.mark = ","), " M"),
+            TotalClaims >= 1e3 ~ paste0(formatC(TotalClaims / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
+            TRUE ~ formatC(TotalClaims, format = "f", digits = 0, big.mark = ",")
+          )
+        )
+      
+      plot_ly(df, 
+              x = ~LossDate, 
+              y = ~TotalClaims, 
+              type = 'scatter', 
+              mode = 'lines+markers',
+              hovertext = ~paste("Date:", format(LossDate, "%Y-%m-%d"), "<br>Total Claims:", scales::comma(TotalClaims), " KES"),
+              hoverinfo = 'text',
+              line = list(color = '#00BFA5'),
+              marker = list(size = 4)) %>%
+        layout(
+          title = list(
+            text = "Gross Claims by Loss Date",
+            x = 0.01,
+            xanchor = "left",
+            font = list(size = 14)
+          ),
+          margin = list(b = 60), 
+          xaxis = list(title = "Loss Date", tickfont = list(size = 10)),
+          yaxis = list(title = "Total Claims (KES)", tickfont = list(size = 10)),
+          font = list(family = "Mulish"),
+          plot_bgcolor = "white",
+          paper_bgcolor = "white"
+        )
+    })
+
+    # Claim Count by Loss Date (Daily)
+    output$claimcount_by_lossdate <- renderPlotly({
+      df <- filtered_data() %>%
+        filter(!is.na(LOSS_DATE)) %>%
+        mutate(LossDate = as.Date(LOSS_DATE)) %>%
+        group_by(LossDate) %>%
         summarise(ClaimCount = n()) %>%
+        arrange(LossDate) %>%
         mutate(
           Label = case_when(
             ClaimCount >= 1e3 ~ paste0(formatC(ClaimCount / 1e3, format = "f", digits = 0, big.mark = ","), " K"),
@@ -440,25 +481,23 @@ giisDashboardServer <- function(id, paid_data) {
         )
 
       plot_ly(df, 
-              x = ~Month, 
+              x = ~LossDate, 
               y = ~ClaimCount, 
               type = 'scatter', 
-              mode = 'lines+markers+text',
-              text = ~Label,
-              textposition = 'top center',
-              textfont = list(size = 8, color = 'black'),
+              mode = 'lines+markers',
+              hovertext = ~paste("Date:", format(LossDate, "%Y-%m-%d"), "<br>Claim Count:", formatC(ClaimCount, format = "d", big.mark = ",")),
               hoverinfo = 'text',
               line = list(color = '#EA80FC'),
-              marker = list(size = 6)) %>%
+              marker = list(size = 4)) %>%
         layout(
           title = list(
-            text = "Monthly Claim Count Trend",
-            x = 0.01,  # left-align title
+            text = "Claim Count by Loss Date",
+            x = 0.01,
             xanchor = "left",
             font = list(size = 14)
           ),
           margin = list(b = 30, t = 20), 
-          xaxis = list(title = "Month", tickangle = -45, tickfont = list(size = 10)),
+          xaxis = list(title = "Loss Date", tickfont = list(size = 10)),
           yaxis = list(title = "Count", tickfont = list(size = 10)),
           font = list(family = "Mulish"),
           plot_bgcolor = "white",
